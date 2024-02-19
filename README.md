@@ -1,66 +1,17 @@
-This project was bootstrapped with [Create Contentful App](https://github.com/contentful/create-contentful-app).
+This project was bootstrapped with [Create Contentful App](https://github.com/contentful/create-contentful-app) and is partially based on [this repository](https://github.com/Your-Majesty/contentful-extension-deep-copy/tree/master) with then following improvements
+- using app framework instead of UI Extension
+- configuration page
+- bug fixes
 
-## Available Scripts
+## Deep Cloning
+Contentful's web app clones an entry but none of the referenced entries. This app performs a deep clone of all entries. Assets will not be cloned, but there may be a config option for it later. 
 
-In the project directory, you can run:
+## Configuration page
+Allows for
+- appending text before or after the title field to differentiate between old and new entry
+- enables automatic redirect after x number of milliseconds
 
-#### `npm start`
+<img width="747" alt="image" src="https://github.com/PattoCF/deep-clone/assets/59477906/488a21a8-1b4e-43d2-8593-c5ff920a0758">
 
-Creates or updates your app definition in Contentful, and runs the app in development mode.
-Open your app to view it in the browser.
-
-The page will reload if you make edits.
-You will also see any lint errors in the console.
-
-#### `npm run build`
-
-Builds the app for production to the `build` folder.
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.
-Your app is ready to be deployed!
-
-#### `npm run upload`
-
-Uploads the build folder to contentful and creates a bundle that is automatically activated.
-The command guides you through the deployment process and asks for all required arguments.
-Read [here](https://www.contentful.com/developers/docs/extensibility/app-framework/create-contentful-app/#deploy-with-contentful) for more information about the deployment process.
-
-#### `npm run upload-ci`
-
-Similar to `npm run upload` it will upload your app to contentful and activate it. The only difference is  
-that with this command all required arguments are read from the environment variables, for example when you add
-the upload command to your CI pipeline.
-
-For this command to work, the following environment variables must be set:
-
-- `CONTENTFUL_ORG_ID` - The ID of your organization
-- `CONTENTFUL_APP_DEF_ID` - The ID of the app to which to add the bundle
-- `CONTENTFUL_ACCESS_TOKEN` - A personal [access token](https://www.contentful.com/developers/docs/references/content-management-api/#/reference/personal-access-tokens)
-
-## Libraries to use
-
-To make your app look and feel like Contentful use the following libraries:
-
-- [Forma 36](https://f36.contentful.com/) – Contentful's design system
-- [Contentful Field Editors](https://www.contentful.com/developers/docs/extensibility/field-editors/) – Contentful's field editor React components
-
-## Using the `contentful-management` SDK
-
-In the default create contentful app output, a contentful management client is
-passed into each location. This can be used to interact with Contentful's
-management API. For example
-
-```js
-// Use the client
-cma.locale.getMany({}).then((locales) => console.log(locales));
-```
-
-Visit the [`contentful-management` documentation](https://www.contentful.com/developers/docs/extensibility/app-framework/sdk/#using-the-contentful-management-library)
-to find out more.
-
-## Learn More
-
-[Read more](https://www.contentful.com/developers/docs/extensibility/app-framework/create-contentful-app/) and check out the video on how to use the CLI.
-
-Create Contentful App uses [Create React App](https://create-react-app.dev/). You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started) and how to further customize your app.
+## Siebar App
+Each content type needs to be configured with the sidebar app. It then shows a button that initiates the cloning process. Depending on config, the page redirects to the newly created top level entry.
