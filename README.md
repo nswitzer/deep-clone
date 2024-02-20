@@ -1,4 +1,4 @@
-This project was bootstrapped with [Create Contentful App](https://github.com/contentful/create-contentful-app) and is partially based on [this repository](https://github.com/Your-Majesty/contentful-extension-deep-copy/tree/master) with then following improvements
+This project was bootstrapped with [Create Contentful App](https://github.com/contentful/create-contentful-app) and is partially based on [this repository](https://github.com/Your-Majesty/contentful-extension-deep-copy/tree/master) with the following improvements
 - using app framework instead of UI Extension
 - configuration page
 - bug fixes
