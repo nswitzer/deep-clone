@@ -13,5 +13,5 @@ Allows for
 
 <img width="747" alt="image" src="https://github.com/PattoCF/deep-clone/assets/59477906/488a21a8-1b4e-43d2-8593-c5ff920a0758">
 
-## Siebar App
+## Sidebar App
 Each content type needs to be configured with the sidebar app. It then shows a button that initiates the cloning process. Depending on config, the page redirects to the newly created top level entry.
