@@ -1,9 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Stack, Button, Caption } from "@contentful/f36-components";
 import { useSDK } from "@contentful/react-apps-toolkit";
 
 const Sidebar = () => {
   const sdk = useSDK();
+
+  // Get installation parameters with defaults
+  const installationParams = sdk.parameters.installation || {
+    cloneText: "Copy",
+    cloneTextBefore: true,
+    cloneAssets: false,
+    automaticRedirect: true,
+    msToRedirect: 5000
+  };
+
+  // Convert msToRedirect to number if it's a string
+  if (typeof installationParams.msToRedirect === 'string') {
+    installationParams.msToRedirect = parseInt(installationParams.msToRedirect, 10);
+  }
 
   var references = {};
   var referenceCount = 0;
@@ -21,14 +35,14 @@ const Sidebar = () => {
 
     let caption = document.getElementById("caption");
 
-    if (sdk.parameters.installation.automaticRedirect === true) {
+    if (installationParams.automaticRedirect === true) {
       await setTimeout(function () {
         sdk.navigator.openEntry(clonedEntry.sys.id);
-      }, sdk.parameters.installation.msToRedirect);
+      }, installationParams.msToRedirect);
 
       caption.innerHTML =
         "<a > Redirecting to newly created clone in " +
-        Math.round(sdk.parameters.installation.msToRedirect / 1000, 2) +
+        Math.round(installationParams.msToRedirect / 1000, 2) +
         " seconds. </a>.";
     } else {
        }
@@ -43,12 +57,14 @@ const Sidebar = () => {
 
   //find references in the current entry, and update the references for the entire reference tree
   let cloneEntry = async (entryId) => {
-    await findReferences(sdk.ids.entry);
-    const newReferences = await createNewEntriesFromReferences();
-debugger
-    await updateReferenceTree(newReferences);
-
-    return newReferences[entryId];
+    try {
+      await findReferences(sdk.ids.entry);
+      const newReferences = await createNewEntriesFromReferences();
+      await updateReferenceTree(newReferences);
+      return newReferences[entryId];
+    } catch (error) {
+      throw new Error(`Failed to clone entry: ${error.message}`);
+    }
   };
 
   let createNewEntriesFromReferences = async (tag) => {
@@ -56,38 +72,38 @@ debugger
 
     for (let entryId in references) {
       const entry = references[entryId];
+      
+      // Create a deep copy of the entry fields to avoid modifying the original
+      const entryFields = JSON.parse(JSON.stringify(entry.fields));
 
-      if (
-        entry.fields.title &&
-        entry.fields.title[sdk.locales.default] &&
-        sdk.parameters.installation.cloneTextBefore
-      )
-        entry.fields.title[sdk.locales.default] =
-          sdk.parameters.installation.cloneText +
-          " " +
-          entry.fields.title[sdk.locales.default];
-      else if (
-        entry.fields.title &&
-        entry.fields.title[sdk.locales.default] &&
-        !sdk.parameters.installation.cloneTextBefore
-      )
-        entry.fields.title[sdk.locales.default] =
-          entry.fields.title[sdk.locales.default] +
-          " " +
-          sdk.parameters.installation.cloneText;
+      // Get the content type to find the title field
+      const contentType = await sdk.cma.contentType.get({ contentTypeId: entry.sys.contentType.sys.id });
+
+      // Find the field that is marked as the title field
+      const titleField = contentType.fields.find(field => field.id === contentType.displayField);
+
+      if (titleField && entryFields[titleField.id]) {
+        for (let locale in entryFields[titleField.id]) {
+          if (entryFields[titleField.id][locale]) {
+            const title = entryFields[titleField.id][locale];
+            entryFields[titleField.id][locale] = installationParams.cloneTextBefore
+              ? `${installationParams.cloneText} ${title}`
+              : `${title} ${installationParams.cloneText}`;
+          }
+        }
+      }
 
       let newEntry = "";
       
       if(entry !== undefined) { 
         newEntry = await sdk.cma.entry.create(
-        { contentTypeId: entry.sys.contentType.sys.id },
-        { fields: entry.fields },
-      );
+          { contentTypeId: entry.sys.contentType.sys.id },
+          { fields: entryFields },
+        );
 
-      newReferenceCount++;
-      newEntries[entryId] = newEntry;
+        newReferenceCount++;
+        newEntries[entryId] = newEntry;
       }
-      
     }
 
     return newEntries;
@@ -132,17 +148,40 @@ debugger
 
         for (let lang in field) {
           const langField = field[lang];
-
-          //remove once assets are handled
-          //if((langField.sys !== undefined && langField.sys.linkType !== 'Asset') || (langField.isArray() && langField[0].sys.linkType !== 'Asset')) {
           await updateReferencesOnField(langField, newReferences);
-          //}
         }
       }
 
-      await sdk.cma.entry.update({entryId: entry.sys.id}, {sys: entry.sys, fields: entry.fields})
+      try {
+        // Get the latest version of the entry before updating
+        const latestEntry = await sdk.cma.entry.get({ entryId: entry.sys.id });
+        
+        // Update with the latest version number
+        await sdk.cma.entry.update(
+          { entryId: entry.sys.id },
+          {
+            sys: { ...entry.sys, version: latestEntry.sys.version },
+            fields: entry.fields
+          }
+        );
 
-      updatedReferenceCount++;
+        updatedReferenceCount++;
+      } catch (error) {
+        if (error.status === 409) {
+          // If we get a version conflict, try one more time with the latest version
+          const latestEntry = await sdk.cma.entry.get({ entryId: entry.sys.id });
+          await sdk.cma.entry.update(
+            { entryId: entry.sys.id },
+            {
+              sys: { ...entry.sys, version: latestEntry.sys.version },
+              fields: entry.fields
+            }
+          );
+          updatedReferenceCount++;
+        } else {
+          throw error;
+        }
+      }
     }
   };
 
@@ -164,7 +203,7 @@ debugger
       await findReferences(field.sys.id, "entry");
     }
     //// not needed, as we don't go further on assets
-    if (sdk.parameters.installation.cloneAssets === true) {
+    if (installationParams.cloneAssets === true) {
       if (
         field &&
         field.sys &&
@@ -184,19 +223,18 @@ debugger
     //check if it is an asset or not
     let entry = undefined;
     
-    if (sdk.parameters.installation.cloneAssets === true && type === 'asset') {
-      entry = await sdk.cma.asset.get({assetId: entryId}) 
+    if (installationParams.cloneAssets === true && type === 'asset') {
+      try {
+        entry = await sdk.cma.asset.get({assetId: entryId});
+      } catch (error) {
+        return;
+      }
     } else {
-      
       try {
         entry = await sdk.cma.entry.get({ entryId: entryId });
+      } catch (error) {
+        return;
       }
-      catch (error) {
-        console.log(error)
-        //deleted or inaccessible item, let's remove it
-        delete references[entryId]
-              }
-      
     }
     
     referenceCount++;
@@ -213,7 +251,6 @@ debugger
         }
       }
     }
-  
   };
 
   return (

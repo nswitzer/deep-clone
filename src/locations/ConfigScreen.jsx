@@ -27,43 +27,34 @@ const ConfigScreen = () => {
      If it is not needed, you can remove the next line.
   */
   // const cma = useCMA();
-  const onConfigure = useCallback(async () => {
-    // This method will be called when a user clicks on "Install"
-    // or "Save" in the configuration screen.
-    // for more details see https://www.contentful.com/developers/docs/extensibility/ui-extensions/sdk-reference/#register-an-app-configuration-hook
-
-    // Get current the state of EditorInterface and other entities
-    // related to this app installation
-    const currentState = await sdk.app.getCurrentState();
-    return {
-      // Parameters to be persisted as the app configuration.
-      parameters,
-      // In case you don't want to submit any update to app
-      // locations, you can just pass the currentState as is
-      targetState: currentState,
-    };
-  }, [parameters, sdk]);
-
-  useEffect(() => {
-    // `onConfigure` allows to configure a callback to be
-    // invoked when a user attempts to install the app or update
-    // its configuration.
-    sdk.app.onConfigure(() => onConfigure());
-  }, [sdk, onConfigure]);
 
   useEffect(() => {
     (async () => {
-      // Get current parameters of the app.
-      // If the app is not installed yet, `parameters` will be `null`.
       const currentParameters = await sdk.app.getParameters();
+      
       if (currentParameters) {
         setParameters(currentParameters);
       }
-      // Once preparation has finished, call `setReady` to hide
-      // the loading screen and present the app to a user.
+      
       sdk.app.setReady();
     })();
   }, [sdk]);
+
+  const onConfigure = useCallback(async () => {
+    // Ensure all parameters are properly formatted
+    const formattedParameters = {
+      ...parameters,
+      msToRedirect: parseInt(parameters.msToRedirect, 10),
+    };
+    
+    return {
+      parameters: formattedParameters
+    };
+  }, [parameters]);
+
+  useEffect(() => {
+    sdk.app.onConfigure(onConfigure);
+  }, [sdk, onConfigure]);
 
   return (
     <Card style={{ maxWidth: "50em", margin: "3em auto" }}>
@@ -78,7 +69,6 @@ const ConfigScreen = () => {
           <Tabs.Tab panelId="second">Feedback</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel id="first" style={{ marginTop: "3em" }}>
-
           <Stack flexDirection="column" alignItems="left">
             <FormControl isRequired isInvalid={!parameters.cloneText}>
               <FormControl.Label>Clone Text</FormControl.Label>
@@ -87,9 +77,9 @@ const ConfigScreen = () => {
                 name="cloneText"
                 type="clone-text"
                 placeholder="Your clone text (before or after the title)"
-                onChange={(e) =>
-                  setParameters({ ...parameters, cloneText: e.target.value })
-                }
+                onChange={(e) => {
+                  setParameters({ ...parameters, cloneText: e.target.value });
+                }}
               />
               <FormControl.HelpText>
                 Displayed before or after the title of the entry.
@@ -201,6 +191,10 @@ const ConfigScreen = () => {
                 </FormControl.ValidationMessage>
               )}
             </FormControl>
+
+            <Paragraph>
+              <strong>Note:</strong> After saving changes, you may need to refresh your browser for the changes to take effect in the sidebar.
+            </Paragraph>
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel id="second"  style={{ marginTop: "3em" }}>
