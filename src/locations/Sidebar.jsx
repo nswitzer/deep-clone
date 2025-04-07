@@ -33,22 +33,16 @@ const Sidebar = () => {
     setDisabled(true);
     const clonedEntry = await cloneEntry(sdk.ids.entry);
 
-    let caption = document.getElementById("caption");
+    setLoading(false);
 
     if (installationParams.automaticRedirect === true) {
       await setTimeout(function () {
         sdk.navigator.openEntry(clonedEntry.sys.id);
+        setDisabled(false);
       }, installationParams.msToRedirect);
-
-      caption.innerHTML =
-        "<a > Redirecting to newly created clone in " +
-        Math.round(installationParams.msToRedirect / 1000, 2) +
-        " seconds. </a>.";
     } else {
-       }
-
-    setLoading(false);
-    setDisabled(false);
+      setDisabled(false);
+    }
   };
 
   //find references in the current entry, and update the references for the entire reference tree
@@ -262,7 +256,9 @@ const Sidebar = () => {
       <Caption id="caption">
         {isLoading 
           ? `Cloning: Found ${referenceCount} references, created ${newReferenceCount} new entries, updated ${updatedReferenceCount} references`
-          : "This clones the entry and all referenced entries"}
+          : isDisabled && installationParams.automaticRedirect
+            ? `Redirecting to newly created clone in ${Math.round(installationParams.msToRedirect / 1000, 2)} seconds.`
+            : "This clones the entry and all referenced entries"}
       </Caption>
     </Stack>
   );
