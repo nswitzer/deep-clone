@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Stack, Button, Caption } from "@contentful/f36-components";
 import { useSDK } from "@contentful/react-apps-toolkit";
 
@@ -20,9 +20,9 @@ const Sidebar = () => {
   }
 
   var references = {};
-  var referenceCount = 0;
-  var newReferenceCount = 0;
-  var updatedReferenceCount = 0;
+  const [referenceCount, setReferenceCount] = useState(0);
+  const [newReferenceCount, setNewReferenceCount] = useState(0);
+  const [updatedReferenceCount, setUpdatedReferenceCount] = useState(0);
 
   const [isLoading, setLoading] = useState(false);
   const [isDisabled, setDisabled] = useState(false);
@@ -49,10 +49,6 @@ const Sidebar = () => {
 
     setLoading(false);
     setDisabled(false);
-  };
-
-  let redirectUser = (entryId) => {
-    sdk.navigator.openEntry(entryId);
   };
 
   //find references in the current entry, and update the references for the entire reference tree
@@ -101,7 +97,7 @@ const Sidebar = () => {
           { fields: entryFields },
         );
 
-        newReferenceCount++;
+        setNewReferenceCount(prev => prev + 1);
         newEntries[entryId] = newEntry;
       }
     }
@@ -165,7 +161,7 @@ const Sidebar = () => {
           }
         );
 
-        updatedReferenceCount++;
+        setUpdatedReferenceCount(prev => prev + 1);
       } catch (error) {
         if (error.status === 409) {
           // If we get a version conflict, try one more time with the latest version
@@ -177,7 +173,7 @@ const Sidebar = () => {
               fields: entry.fields
             }
           );
-          updatedReferenceCount++;
+          setUpdatedReferenceCount(prev => prev + 1);
         } else {
           throw error;
         }
@@ -237,7 +233,7 @@ const Sidebar = () => {
       }
     }
     
-    referenceCount++;
+    setReferenceCount(prev => prev + 1);
     if(entry !== undefined) {
       references[entryId] = entry;
 
@@ -264,7 +260,9 @@ const Sidebar = () => {
         Clone
       </Button>
       <Caption id="caption">
-        This clones the entry and all referenced entries
+        {isLoading 
+          ? `Cloning: Found ${referenceCount} references, created ${newReferenceCount} new entries, updated ${updatedReferenceCount} references`
+          : "This clones the entry and all referenced entries"}
       </Caption>
     </Stack>
   );
